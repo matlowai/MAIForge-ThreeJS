@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#08141d"><meta name="description" content="Explore a native generated planet with the MAIForge Three.js engine adapter."><link rel="icon" href="./favicon.svg" type="image/svg+xml"><title>MAIForge · Planet Engine</title></head>
+<body>
+<div id="app">
+  <canvas id="viewport" tabindex="0" aria-label="Interactive planet. Drag to orbit, scroll to descend, WASD to move. Press H for help."></canvas>
+  <header class="topbar">
+    <a class="brand" href="https://github.com/matlowai/MAIForge" target="_blank" rel="noopener"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 29 9v14l-13 7L3 23V9Zm0 0v28M3 9l13 7 13-7M3 23l13-7 13 7"/></svg><span>MAIForge<small>THREE.JS ENGINE ADAPTER</small></span></a>
+    <div class="top-actions"><span id="status" class="status"><i></i> Loading native world</span><button id="helpButton" class="icon-button" aria-label="Controls and source information">?</button></div>
+  </header>
+  <aside class="controls" aria-label="View controls">
+    <div class="eyebrow">EXPLORE THE PLANET</div>
+    <div class="segmented camera-buttons"><button data-preset="planet" class="active">Planet</button><button data-preset="region">1,000 km</button><button data-preset="surface">Surface</button></div>
+    <div class="control-divider"></div>
+    <label class="control-label">Surface view</label>
+    <div class="segmented modes"><button data-mode="climate" class="active">Climate</button><button data-mode="rock">Rock</button><button data-mode="height">Height</button></div>
+    <div class="settings-row"><label for="quality">Quality</label><select id="quality"><option value="low">Low</option><option value="balanced" selected>Balanced</option><option value="high">High</option></select></div>
+    <div class="toggle-row"><label><input id="wireframe" type="checkbox">Mesh</label><label><input id="autoOrbit" type="checkbox">Auto orbit</label></div>
+  </aside>
+  <section class="readout" aria-label="Camera altitude"><div class="eyebrow">ALTITUDE ABOVE SURFACE</div><div id="altitude" class="altitude">—<span>km</span></div><div id="coordinates" class="coordinates">Loading coordinates</div><div class="scale-label" id="scaleLabel">Native world · camera-relative rendering</div></section>
+  <div class="navigation"><button id="zoomIn" aria-label="Move closer">+</button><span id="navigationHint">Drag to orbit · scroll to descend</span><button id="zoomOut" aria-label="Move farther">−</button></div>
+  <button class="performance" id="performanceButton" aria-expanded="false"><span class="live-dot"></span><strong id="fps">—</strong><span>fps</span><span class="perf-divider"></span><span id="meshStats">Preparing tiles</span><span class="chevron">⌃</span></button>
+  <section id="performancePanel" class="performance-panel hidden" aria-label="Performance details"></section>
+  <aside id="inspector" class="inspector hidden"><div class="inspector-head"><span class="eyebrow">NATIVE SURFACE SAMPLE</span><button id="closeInspector" aria-label="Close sample">×</button></div><div id="sampleFields"></div><p>Overview samples. Mesh subdivisions and visual grain do not add geological resolution.</p></aside>
+  <div id="loading" class="loading"><div class="loading-ring"></div><strong>Opening your world</strong><span id="loadLabel">Verifying native fields</span><div class="progress-track"><i id="progress"></i></div></div>
+  <div id="error" class="error hidden" role="alert"></div>
+  <dialog id="help"><button id="closeHelp" class="close-dialog" aria-label="Close help">×</button><div class="eyebrow">MAIFORGE / BROWSER RUNTIME</div><h1>One world. Many scales.</h1><p>The adapter streams a balanced mesh around your view. The native world stays fixed as you move.</p><dl><dt>Drag</dt><dd>Orbit from space; look around near the surface</dd><dt>Right-drag</dt><dd>Pan across the planet</dd><dt>Scroll / + / −</dt><dd>Change altitude</dd><dt>W A S D</dt><dd>Move; hold Shift to move faster</dd><dt>Q / E</dt><dd>Descend / climb</dd><dt>Click terrain</dt><dd>Inspect the underlying native sample</dd></dl><h2>What you are seeing</h2><p id="sourceSummary"></p><p>Climate colours visualize temperature and precipitation. Rock colours and grain are world-anchored appearance priors. They are not a separate geological or ecosystem simulation. Native water levels are preserved.</p><p>Three.js handles rendering and browser input. MAIForge owns generation, rules and source evidence. Canonical gameplay physics and edits are not replaced by this inspection camera.</p><a href="https://github.com/matlowai/MAIForge" target="_blank" rel="noopener">Explore the core source ↗</a> · <a href="https://github.com/matlowai/MAIForge-ThreeJS" target="_blank" rel="noopener">Adapter source ↗</a></dialog>
+  <div class="source-badge" id="sourceBadge">VERIFIED NATIVE DATA</div>
+</div>
+<script type="module" src="/src/main.js"></script>
+</body></html>

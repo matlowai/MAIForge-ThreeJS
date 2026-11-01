@@ -1,0 +1,140 @@
+{
+  "capabilities": {
+    "climate": true,
+    "coarseLithology": true,
+    "nativeFineTerrain": false
+  },
+  "epochMy": 400.0,
+  "fields": {
+    "elevation": {
+      "bytes": 663552,
+      "file": "elevation.f32",
+      "sha256": "3763161bc3b02f1e5af6bcdfee2b2dcdaadcc0998b36acf0113ac7833af34aae",
+      "source": {
+        "artifact": "terrain",
+        "field": "elevation_m"
+      },
+      "type": "f32le",
+      "unit": "m"
+    },
+    "lithology": {
+      "bytes": 165888,
+      "file": "lithology.u8",
+      "sha256": "88041ccd0aee99448d281412f5ff702ea36f8c5ef77e204a566a4ef28d202882",
+      "source": {
+        "artifact": "terrain",
+        "nativeDigest": "blake3:634c60c5aab6b1b1f464e1ed63b253c783f6caca866ebeac242fa9d18c2b1945",
+        "sha256": "c97d62af639993364a2213ecf916e3bf161a3a6979d6a5dbf94fa6b2b43868cc",
+        "sidecar": "stratigraphy"
+      },
+      "type": "u8",
+      "unit": "code"
+    },
+    "precipitation": {
+      "bytes": 663552,
+      "file": "precipitation.f32",
+      "sha256": "0fc4ac3462beab449d37523e37b0574a082d114d36e25b31cf09d7c85ef49f4a",
+      "source": {
+        "artifact": "climate",
+        "field": "precipitation_mm_per_yr"
+      },
+      "type": "f32le",
+      "unit": "mm/yr"
+    },
+    "surfaceHeight": {
+      "bytes": 663552,
+      "file": "surface-height.f32",
+      "sha256": "3f49e1d9f7d3c9cb606495dc280eebf6985ac1fa6b08952dbe194df3fac936aa",
+      "source": {
+        "artifact": "hydrology",
+        "rule": "native body stage on wet cells, original elevation on dry cells"
+      },
+      "type": "f32le",
+      "unit": "m"
+    },
+    "temperature": {
+      "bytes": 663552,
+      "file": "temperature.f32",
+      "sha256": "ec1f1f13388af9c6fa3e762656f0d369741dec59086b4abd0488e34e71675a4c",
+      "source": {
+        "artifact": "climate",
+        "field": "temperature_mean_c"
+      },
+      "type": "f32le",
+      "unit": "degC"
+    },
+    "waterKind": {
+      "bytes": 165888,
+      "file": "water-kind.u8",
+      "sha256": "463e5ac8ba887ad132e3ea57300f16885319346d24ed853b0e6dac1f866b8170",
+      "source": {
+        "artifact": "hydrology",
+        "field": "water_body_id",
+        "rule": "native body kind; dry sentinel remains dry"
+      },
+      "type": "u8",
+      "unit": "code"
+    }
+  },
+  "grid": {
+    "cols": 576,
+    "latitude": "north-positive",
+    "layout": "row-major",
+    "longitude": "east-positive, periodic",
+    "order": "south-first",
+    "rows": 288,
+    "sampling": "cell-centres"
+  },
+  "id": "sha256:53ab2e053024d689bede2bdb96571b824a2d4aa7ff44c25798a2674755d58e03",
+  "interpolation": "cell-centred-bilinear-pole-mean",
+  "limitations": [
+    "Precomputed generated data exported from verified native artifacts; exact reproduction of the historical run by the current source is not claimed.",
+    "Rendering subdivisions do not add geological resolution. The export is not native fine catchment terrain.",
+    "sourceResolutionM is north-south spacing; east-west spacing decreases towards the poles.",
+    "Lithology identifies the top positive-thickness published coarse layer, not a fine exposed-material or finite-stock qualification.",
+    "Native coarse water-body occupancy and stages are retained; subcell shorelines are unresolved.",
+    "Continuous scalar fields use cell-centred bilinear interpolation with pole-row means; categorical codes must not be averaged as numeric quantities.",
+    "Native climate is available and pins the same terrain and hydrology artifacts."
+  ],
+  "lithologyCodes": {
+    "0": "crystalline_basement",
+    "1": "granite_pluton",
+    "10": "unconsolidated",
+    "11": "oceanic_igneous",
+    "2": "metamorphic",
+    "255": "unknown",
+    "3": "basalt_volcanic",
+    "4": "marine_carbonate",
+    "5": "shale",
+    "6": "sandstone",
+    "7": "conglomerate",
+    "8": "evaporite",
+    "9": "coal_bearing"
+  },
+  "radiusM": 6371000.0,
+  "schema": "maiforge.viewer-world/v1",
+  "seaLevelM": 0.0,
+  "seed": 42,
+  "sourceArtifacts": {
+    "climate": "blake3:56e2c2ab6c6e02b3b24ac05f445f1b41d21f90d3eb4e8b6e77d8330c0c8b425d",
+    "hydrology": "blake3:6f3777f4d1997577ef2d028f77f63096486dd487a2735398c69bc145f52adb45",
+    "terrain": "blake3:7de6e5fd12132b68736b97c8a7c04e5c1becc682bb6c8edd1405f90649f7e0ae"
+  },
+  "sourceResolutionM": 69496.82915284921,
+  "summary": {
+    "dryCells": 39363,
+    "heightMaxM": 4957.2470703125,
+    "heightMinM": -7748.70361328125,
+    "lakeCells": 10413,
+    "marineCells": 116112,
+    "maxPublishedBedAboveStageM": 0.000016720201529096812,
+    "maxWaterStageF32ErrorM": 0.00024079585637082346,
+    "unknownLithologyCells": 0
+  },
+  "title": "Native generated reference world",
+  "waterKindCodes": {
+    "0": "dry",
+    "1": "marine",
+    "2": "lake"
+  }
+}

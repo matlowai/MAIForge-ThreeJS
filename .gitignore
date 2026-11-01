@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.cache/
+.sites-runtime/
+.openai/
+qa-output/
+public/data/user/
+*.log
