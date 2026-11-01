@@ -115,10 +115,11 @@ test('optional render proxy uses explicit pole residuals and requires the correc
  // Presentation composition only. Synthetic controls do not validate native physics.
  const f=fixture(),source={input:{a:1,b:2}};
  const nativeRegion={id:'region',parentId:f.manifest.id,manifest:{model:'test',source},resolutionM:500,heightRange:[0,100],contains:()=>false};
- const nativeProxy={id:'proxy',parentId:f.manifest.id,manifest:{model:'test',source:{input:{b:2,a:1}}},sampleResidual:(_lon,lat)=>Math.abs(lat)===Math.PI/2?(lat<0?71:-23):0};
+ const nativeProxy={id:'proxy',parentId:f.manifest.id,manifest:{model:'test',source:{input:{b:2,a:1}}},sampleResidual:(_lon,lat)=>Math.abs(lat)===Math.PI/2?(lat<0?500:-1000):0};
  const w=new WorldData(f.manifest,f.buffers,{nativeRegion,nativeProxy});
- assert.equal(w.sampleHeight([0,-1,0]),15+71);
- assert.equal(w.sampleHeight([0,1,0]),315-23);
+ assert.equal(w.sampleHeight([0,-1,0]),15+500);
+ assert.equal(w.sampleHeight([0,1,0]),315-1000);
+ assert.ok(w.heightRange[0]<=315-1000 && w.heightRange[1]>=15+500);
  assert.throws(()=>new WorldData(f.manifest,f.buffers,{nativeRegion:{...nativeRegion,parentId:'other'},nativeProxy}),/parent identity/);
  assert.throws(()=>new WorldData(f.manifest,f.buffers,{nativeRegion,nativeProxy:{...nativeProxy,manifest:{model:'test',source:{input:{a:9}}}}}),/source mismatch/);
 });

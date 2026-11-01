@@ -107,7 +107,7 @@ export class WorldData {
         for(let x=0;x<this.cols;x++){const i=row*this.cols+x;sum+=this.fields.waterKind[i]?this.fields.surfaceHeight[i]:solid;}return sum/this.cols;};
       this.renderPoles=[poleSurface(0,0),poleSurface(1,this.rows-1)];
       this.renderGrid={rows:this.rows,cols:this.cols,fields:{surfaceHeight:this.renderValues},poles:{surfaceHeight:this.renderPoles}};
-      this.heightRange=[Math.min(rlo,nativeRegion.heightRange[0]),Math.max(rhi,nativeRegion.heightRange[1])];
+      this.heightRange=[Math.min(rlo,nativeRegion.heightRange[0],...this.renderPoles),Math.max(rhi,nativeRegion.heightRange[1],...this.renderPoles)];
       this.renderGuardM=8*nativeRegion.resolutionM;
       this.nodeToSurface=(height,owner)=>this.fields.waterKind[owner]?this.fields.surfaceHeight[owner]:height;
     }
