@@ -1,5 +1,7 @@
 # MAIForge Three.js engine adapter
 
+[Open the browser demo](https://matlowai.github.io/MAIForge-ThreeJS/)
+
 A self-contained browser client for [MAIForge](https://github.com/matlowai/MAIForge)
 worlds. Three.js supplies the rendering and browser interaction; MAIForge retains
 world generation, scientific models, stable identities and gameplay authority.
