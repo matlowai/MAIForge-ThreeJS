@@ -47,6 +47,8 @@ test('worker refuses uninitialized and stale-source tile requests, returns bound
   assert.equal(reply.type,'tile');assert.equal(reply.sourceId,'world-a');assert.equal(reply.id,3);
   assert.equal(reply.result.radius,6371000);assert.deepEqual(reply.result.tile,tile);
   assert.ok(reply.result.positions instanceof Float32Array);assert.equal(reply.result.positions.length,75);
+  for(const key of ['positionHigh','positionLow']){assert.ok(reply.result[key] instanceof Float32Array);assert.equal(reply.result[key].length,75);}
+  for(let k=0;k<3;k++)assert.ok(Math.abs(reply.result.positionHigh[36+k]+reply.result.positionLow[36+k]-reply.result.anchor[k])<1e-7);
   assert.ok(Math.abs(Math.hypot(...reply.result.anchor)-6371100)<1e-6);
 });
 

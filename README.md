@@ -41,8 +41,13 @@ visualizations of supplied fields, not additional simulation.
 
 - A six-face spherical quadtree, balanced across face boundaries, with stitched
   coarse/fine edges. Existing parent coverage remains until children are ready.
-- Camera-relative positions and patch-local float geometry for planetary scale.
+- Canonical high/low world coordinates on the GPU, with camera-relative
+  subtraction and patch-local CPU geometry. Shared tile vertices retain identical
+  coordinates across cube faces and coarse/fine joins.
 - Reversed depth where available, with logarithmic depth as a fallback.
+- Single-sample terrain rendering plus FXAA after colour conversion. This avoids
+  an intermittent MSAA-path seam observed on the tested GPU/backend; the terrain
+  image is also checked before the anti-aliasing filter.
 - Two terrain workers, source-bound requests and bounded tile caches.
 - Extra refinement around the camera, with clearance checked against the actual
   rendered triangles. This is an inspection camera, not authoritative physics.

@@ -44,11 +44,17 @@ export function buildTile(tile,{radius,gridSize=32,sampleHeight,normalStep=25}) 
     return d.map(v=>v*(radius+h));
   };
   const anchor=point(faceDirection(tile.face,(bounds.u0+bounds.u1)/2,(bounds.v0+bounds.v1)/2));
+  // Preserve canonical world coordinates before local Float32 rounding. GPU
+  // subtraction then agrees at shared vertices independently of patch origins.
+  const positionHigh=new Float32Array(count*3),positionLow=new Float32Array(count*3);
   const positions=new Float32Array(count*3),normals=new Float32Array(count*3),planetPositions=new Float32Array(count*3);
+  // One rational global grid address gives both sides of a shared edge the
+  // same double, including reflected cube faces and differently sized patches.
+  const gridDenominator=2**tile.level*gridSize;
   const step=normalStep/radius;
   if (!Number.isFinite(step)) throw new RangeError('Normal sampling scale exceeds numeric range');
   for(let y=0;y<=gridSize;y++)for(let x=0;x<=gridSize;x++) {
-    const u=bounds.u0+(bounds.u1-bounds.u0)*x/gridSize, v=bounds.v0+(bounds.v1-bounds.v0)*y/gridSize;
+    const u=(2*(tile.x*gridSize+x)-gridDenominator)/gridDenominator, v=(2*(tile.y*gridSize+y)-gridDenominator)/gridDenominator;
     const d=faceDirection(tile.face,u,v), p=point(d);
     const tangent=normalize(cross(Math.abs(d[1])<0.9?[0,1,0]:[1,0,0],d));
     const bitangent=cross(d,tangent);
@@ -57,9 +63,9 @@ export function buildTile(tile,{radius,gridSize=32,sampleHeight,normalStep=25}) 
     if(!normal.every(Number.isFinite)) throw new RangeError('Height source has a degenerate sampled normal');
     if(dot(normal,d)<0)normal=normal.map(a=>-a);
     const i=3*(y*stride+x);
-    for(let k=0;k<3;k++){positions[i+k]=p[k]-anchor[k];normals[i+k]=normal[k];planetPositions[i+k]=p[k]/radius;}
+    for(let k=0;k<3;k++){positions[i+k]=p[k]-anchor[k];positionHigh[i+k]=p[k];positionLow[i+k]=p[k]-positionHigh[i+k];normals[i+k]=normal[k];planetPositions[i+k]=p[k]/radius;}
   }
-  return {anchor,positions,normals,planetPositions,gridSize,tile:{...tile},radius};
+  return {anchor,positions,positionHigh,positionLow,normals,planetPositions,gridSize,tile:{...tile},radius};
 }
 
 /** Radial height of the ACTUAL stitched triangles, for render-camera clearance. */

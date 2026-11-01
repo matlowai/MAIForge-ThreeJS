@@ -42,16 +42,16 @@ export function createWorldTextures(world, renderer) {
 
 export function createTerrainMaterial(world,textures) {
   return new THREE.ShaderMaterial({
-    uniforms:{uMap:{value:textures.climate},uRows:{value:world.rows},uPhase:{value:new THREE.Vector3()},
+    uniforms:{uMap:{value:textures.climate},uRows:{value:world.rows},uPhase:{value:new THREE.Vector3()},uCameraHigh:{value:new THREE.Vector3()},uCameraLow:{value:new THREE.Vector3()},
       uSun:{value:new THREE.Vector3(1,.5,.5).normalize()},uAltitude:{value:1e6},uDetail:{value:1},uAnalysis:{value:0}},
     vertexShader:`
       #include <common>
       #include <logdepthbuf_pars_vertex>
-      attribute vec3 planetPosition;
-      uniform vec3 uPhase;
+      attribute vec3 planetPosition,positionHigh,positionLow;
+      uniform vec3 uPhase,uCameraHigh,uCameraLow;
       varying vec3 vPlanet; varying vec3 vNormal; varying vec3 vView; varying vec3 vMaterial;
       void main(){
-        vec4 p=modelMatrix*vec4(position,1.);
+        vec4 p=vec4((positionHigh-uCameraHigh)+(positionLow-uCameraLow),1.);
         vPlanet=planetPosition; vNormal=normal;vView=-p.xyz;vMaterial=position+uPhase;
         gl_Position=projectionMatrix*viewMatrix*p;
         #include <logdepthbuf_vertex>

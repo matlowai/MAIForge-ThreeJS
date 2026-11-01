@@ -21,7 +21,7 @@ self.onmessage=async event=>{
   if(m.type==='tile'){
    if(!source||m.sourceId!==source.id)throw Error('Source not initialized or mismatched');
    const result=buildTile(m.tile,{radius:source.radius,gridSize:m.gridSize,sampleHeight:source.sampleHeight,normalStep:25});
-   const transfer=[result.positions.buffer,result.normals.buffer,result.planetPositions.buffer];
+   const transfer=[result.positions.buffer,result.normals.buffer,result.planetPositions.buffer,result.positionHigh.buffer,result.positionLow.buffer];
    self.postMessage({type:'tile',id:m.id,sourceId:source.id,result},transfer);
   }
  }catch(e){self.postMessage({type:'error',id:m.id,sourceId:source?.id??null,message:e.message});}

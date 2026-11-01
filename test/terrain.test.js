@@ -224,3 +224,32 @@ test('navigation reservation does not depend on looking toward the ground',()=>{
  assert.equal(up.metrics.navigationSatisfied,true);
  assert.ok(nativeRendered(world,up.tiles,v.radial).error<.1);
 });
+
+test('canonical GPU coordinates are bit-identical at native stitched and reflected face edges',()=>{
+ const world=nativeReference(),n=24,stride=n+1;
+ const make=t=>buildTile(t,{radius:world.radius,gridSize:n,sampleHeight:world.sampleHeight});
+ const camera=nativeGroundView(world).options.cameraPosition,hi=camera.map(Math.fround),lo=camera.map((v,i)=>Math.fround(v-hi[i]));
+ let comparisons=0;
+ const compare=(a,ai,b,bi)=>{
+  for(let k=0;k<3;k++){
+   assert.ok(Object.is(a.positionHigh[ai*3+k],b.positionHigh[bi*3+k]),'shared high component differs');
+   assert.ok(Object.is(a.positionLow[ai*3+k],b.positionLow[bi*3+k]),'shared low component differs');
+   const gpu=(m,i)=>Math.fround(Math.fround(m.positionHigh[i*3+k]-hi[k])+Math.fround(m.positionLow[i*3+k]-lo[k]));
+   assert.ok(Object.is(gpu(a,ai),gpu(b,bi)),'shared GPU relative coordinate differs');
+  }
+  comparisons++;
+ };
+ // Captured native coarse/fine seam, then a cross-face mixed-level edge.
+ let a=make({face:4,level:16,x:55446,y:26856}),b=make({face:4,level:17,x:110894,y:53713});
+ for(let k=0;k<=12;k++)compare(a,(12+k)*stride+n,b,2*k*stride);
+ a=make({face:0,level:15,x:0,y:16400});b=make({face:4,level:14,x:16383,y:8200});
+ for(let k=0;k<=12;k++)compare(a,2*k*stride,b,k*stride+n);
+ const seen=new Map();
+ for(const mesh of roots().map(make))for(let y=0;y<=n;y++)for(let x=0;x<=n;x++)if(x===0||x===n||y===0||y===n){
+  const i=y*stride+x,p=Array.from({length:3},(_,k)=>mesh.positionHigh[i*3+k]+mesh.positionLow[i*3+k]);
+  const len=Math.hypot(...p),key=p.map(v=>(v/len).toFixed(12)).join(',');
+  // Rounding is only a pairing lookup. The actual comparison above is bit exact.
+  if(seen.has(key)){const other=seen.get(key);compare(mesh,i,other.mesh,other.i);}else seen.set(key,{mesh,i});
+ }
+ assert.equal(comparisons,318);
+});

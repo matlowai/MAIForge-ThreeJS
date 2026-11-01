@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { FXAAPass } from 'three/addons/postprocessing/FXAAPass.js';
 import { WorldData } from './WorldData.js';
 import { GeoCamera } from './GeoCamera.js';
 import { createTerrainMaterial,createWorldTextures,createAtmosphere } from './materials.js';
@@ -13,9 +17,15 @@ const qualities={low:{tiles:320,error:3,pixelRatio:.8,detail:0,cache:64},balance
 export class PlanetEngine extends EventTarget {
   constructor(canvas,{onStats=()=>{},onError=()=>{}}={}) {
     super();this.canvas=canvas;this.onStats=onStats;this.onError=onError;
-    this.renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',logarithmicDepthBuffer:true,reversedDepthBuffer:true});
+    this.renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance',logarithmicDepthBuffer:true,reversedDepthBuffer:true});
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.05;
-    this.scene=new THREE.Scene();this.camera=new THREE.PerspectiveCamera(52,1,.02,4e7);
+    this.scene=new THREE.Scene();this.spaceColor=new THREE.Color('#071019');this.airColor=new THREE.Color('#8da9b8');this.scene.background=this.spaceColor.clone();this.camera=new THREE.PerspectiveCamera(52,1,.02,4e7);
+    // A single-sample terrain pass avoids an observed intermittent MSAA seam.
+    // FXAA follows tone mapping/sRGB conversion; source geometry is unchanged.
+    this.composer=new EffectComposer(this.renderer);
+    this.renderPass=new RenderPass(this.scene,this.camera);this.outputPass=new OutputPass();this.fxaaPass=new FXAAPass();
+    this.composer.addPass(this.renderPass);this.composer.addPass(this.outputPass);this.composer.addPass(this.fxaaPass);
+    this.renderer.info.autoReset=false;
     this.rootGroup=new THREE.Group();this.scene.add(this.rootGroup);this.raycaster=new THREE.Raycaster();
     const gl=this.renderer.getContext(), ext=gl.getExtension('WEBGL_debug_renderer_info');
     this.gpu=ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):'WebGL2';
@@ -68,12 +78,12 @@ export class PlanetEngine extends EventTarget {
   pump(){if(this.disposed)return;this.queue.sort((a,b)=>a.tile.level-b.tile.level);
     for(const slot of this.workers){if(!slot.ready||slot.busy)continue;const item=this.queue.shift();if(!item)break;slot.busy=true;slot.key=item.id;slot.worker.postMessage({type:'tile',id:item.id,sourceId:this.world.id,tile:item.tile,gridSize:this.gridSize});}}
   acceptTile(data){const key=tileKey(data.tile);if(this.cache.has(key))return;
-    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(data.positions,3));geometry.setAttribute('normal',new THREE.BufferAttribute(data.normals,3));geometry.setAttribute('planetPosition',new THREE.BufferAttribute(data.planetPositions,3));
+    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(data.positions,3));geometry.setAttribute('positionHigh',new THREE.BufferAttribute(data.positionHigh,3));geometry.setAttribute('positionLow',new THREE.BufferAttribute(data.positionLow,3));geometry.setAttribute('normal',new THREE.BufferAttribute(data.normals,3));geometry.setAttribute('planetPosition',new THREE.BufferAttribute(data.planetPositions,3));
     const index=new Uint16Array(this.gridSize*this.gridSize*6);index.set(indicesForMask(this.gridSize,0));geometry.setIndex(new THREE.BufferAttribute(index,1));geometry.computeBoundingSphere();
     const mesh=new THREE.Mesh(geometry,this.material);mesh.userData.tileKey=key;
     const phase=new THREE.Vector3(...data.anchor.map(v=>mod(v,2048)));
     mesh.onBeforeRender=()=>{this.material.uniforms.uPhase.value.copy(phase);this.material.uniformsNeedUpdate=true;};
-    const bytes=2*(data.positions.byteLength+data.normals.byteLength+data.planetPositions.byteLength+index.byteLength);
+    const bytes=2*(data.positions.byteLength+data.normals.byteLength+data.planetPositions.byteLength+data.positionHigh.byteLength+data.positionLow.byteLength+index.byteLength);
     this.cache.set(key,{key,tile:data.tile,data,mesh,geometry,mask:0,bytes,lastUsed:this.tick});this.generatedTiles++;this.cutDirty=true;this.evict();
     if(roots().every(t=>this.cache.has(tileKey(t))))this.resolveRoots?.();
   }
@@ -105,7 +115,7 @@ export class PlanetEngine extends EventTarget {
     for(const e of old){if(this.cache.size<=this.maxCacheTiles&&bytes<=this.cacheBudget)break;this.rootGroup.remove(e.mesh);e.geometry.dispose();this.cache.delete(e.key);bytes-=e.bytes;}
     this.estimatedCacheBytes=bytes;
   }
-  resize(){const w=Math.max(1,this.canvas.clientWidth),h=Math.max(1,this.canvas.clientHeight);this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.updateProjectionMatrix();}
+  resize(){const w=Math.max(1,this.canvas.clientWidth),h=Math.max(1,this.canvas.clientHeight);this.renderer.setSize(w,h,false);this.composer.setPixelRatio(this.renderer.getPixelRatio());this.composer.setSize(w,h);this.camera.aspect=w/h;this.camera.updateProjectionMatrix();}
   setQuality(name){if(!qualities[name])throw Error('Unknown quality');this.qualityName=name;const q=qualities[name];this.cacheBudget=q.cache*1048576;this.maxCacheTiles=Math.ceil(q.tiles*8/3)+24;this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,q.pixelRatio));this.resize();if(this.material)this.material.uniforms.uDetail.value=q.detail;this.planDirty=true;}
   setMode(mode){if(!this.textures?.[mode])return;this.mode=mode;this.material.uniforms.uMap.value=this.textures[mode];this.material.uniforms.uAnalysis.value=mode==='height'?1:0;}
   setWireframe(on){this.material.wireframe=!!on;}
@@ -135,9 +145,11 @@ export class PlanetEngine extends EventTarget {
     this.camera.position.set(0,0,0);this.camera.up.set(...pose.up);this.camera.lookAt(...pose.forward);
     this.camera.near=Math.max(.02,Math.min(4000,pose.altitude*.00005));this.camera.far=this.world.radius*3+pose.altitude;this.camera.updateProjectionMatrix();
     for(const e of this.rendered)e.mesh.position.set(e.data.anchor[0]-pose.position[0],e.data.anchor[1]-pose.position[1],e.data.anchor[2]-pose.position[2]);
+    this.material.uniforms.uCameraHigh.value.set(...pose.position.map(Math.fround));
+    this.material.uniforms.uCameraLow.value.set(...pose.position.map(v=>v-Math.fround(v)));
     this.atmosphere.position.set(...pose.position.map(v=>-v));this.material.uniforms.uAltitude.value=pose.altitude;
-    const air=1-Math.min(1,pose.altitude/120000);this.renderer.setClearColor(new THREE.Color().lerpColors(new THREE.Color('#071019'),new THREE.Color('#8da9b8'),air));
-    const renderStart=performance.now();this.renderer.render(this.scene,this.camera);this.renderCpuMs=performance.now()-renderStart;
+    const air=1-Math.min(1,pose.altitude/120000);this.scene.background.copy(this.spaceColor).lerp(this.airColor,air);
+    const renderStart=performance.now();this.renderer.info.reset();this.composer.render(dt);this.renderCpuMs=performance.now()-renderStart;
     if(time-this.lastStats>300){this.onStats(this.stats());this.lastStats=time;}
     this.frameHandle=requestAnimationFrame(t=>this.frame(t));
   }
@@ -146,12 +158,12 @@ export class PlanetEngine extends EventTarget {
       renderedTiles:this.rendered.length,desiredTiles:this.desired.length,maxLevel:Math.max(0,...this.rendered.map(e=>e.tile.level)),triangles:this.renderer.info.render.triangles,drawCalls:this.renderer.info.render.calls,
       cachedTiles:this.cache.size,cacheMiB:(this.estimatedCacheBytes??0)/1048576,cacheLimitMiB:qualities[this.qualityName].cache,queue:this.pending.size,generatedTiles:this.generatedTiles,tileErrors:this.tileErrors,
       gpu:this.gpu,software:this.software,reversedDepth:!!this.renderer.capabilities.reversedDepthBuffer,logDepth:!!this.renderer.capabilities.logarithmicDepthBuffer,
-      pixelRatio:this.renderer.getPixelRatio(),sourceResolutionM:this.currentPose?this.world.resolutionAt(this.currentPose.radial):this.world?.sourceSpacing,nativeDetail:!!this.world?.nativeRegion,altitude:this.currentPose?.altitude,latitude:this.controls?.latitude,longitude:this.controls?.longitude,
+      antiAliasing:'FXAA',pixelRatio:this.renderer.getPixelRatio(),sourceResolutionM:this.currentPose?this.world.resolutionAt(this.currentPose.radial):this.world?.sourceSpacing,nativeDetail:!!this.world?.nativeRegion,altitude:this.currentPose?.altitude,latitude:this.controls?.latitude,longitude:this.controls?.longitude,
       cameraClearance:this.currentPose&&this.renderGround!==null?this.currentPose.ground+this.currentPose.altitude-this.renderGround:null,
       selection:this.selectionMetrics,quality:this.qualityName,mode:this.mode};}
   pick(clientX,clientY){const rect=this.canvas.getBoundingClientRect();this.raycaster.setFromCamera(new THREE.Vector2((clientX-rect.left)/rect.width*2-1,-(clientY-rect.top)/rect.height*2+1),this.camera);
     const hit=this.raycaster.intersectObjects(this.rendered.map(e=>e.mesh),false)[0];if(!hit)return null;
     const point=hit.point.toArray().map((v,i)=>v+this.currentPose.position[i]);const len=Math.hypot(...point),lat=Math.asin(point[1]/len),lon=Math.atan2(point[2],point[0]);
     const sample=this.world.sample(lon,lat);this.dispatchEvent(new CustomEvent('pick',{detail:{sourceId:this.world.id,position:point,sample,representation:'native overview interpolation'}}));return sample;}
-  dispose(){this.disposed=true;this.stop();this.controls?.dispose();this.resizeObserver.disconnect();for(const s of this.workers)s.worker.terminate();for(const e of this.cache.values())e.geometry.dispose();for(const t of Object.values(this.textures??{}))t.dispose();this.material?.dispose();this.atmosphere?.geometry.dispose();this.atmosphere?.material.dispose();this.renderer.dispose();this.cache.clear();}
+  dispose(){this.disposed=true;this.stop();this.controls?.dispose();this.resizeObserver.disconnect();for(const s of this.workers)s.worker.terminate();for(const e of this.cache.values())e.geometry.dispose();for(const t of Object.values(this.textures??{}))t.dispose();this.material?.dispose();this.atmosphere?.geometry.dispose();this.atmosphere?.material.dispose();this.fxaaPass.dispose();this.outputPass.dispose();this.renderPass.dispose();this.composer.dispose();this.renderer.dispose();this.cache.clear();}
 }
